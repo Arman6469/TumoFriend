@@ -1,0 +1,20 @@
+.logintext {
+    margin-top: 200px;
+    margin-bottom: 20px;
+    font-family: "Noto Sans TC", sans-serif;
+    text-align: center;
+  }
+  .logindiv {
+    width: 600px !important;
+  }
+  .btn-primary {
+    background-color: black !important;
+    border-color: black;
+  }
+  .submit {
+    display: flex;
+    justify-content: center;
+  }
+  .dont {
+    text-align: center;
+  }
