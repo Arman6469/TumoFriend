@@ -92,12 +92,25 @@ export const logoutUser = (user, email, password) => {
   }
 }
 
+export const imReceiver = () => ({
+  type: 'IM_THE_RECEIVE',
+})
+
 export const startChat = (withUser) => {
-  // TODO: action creator to start chat
+  return dispatch => {
+    dispatch({
+      type: 'START_CHAT',
+      withUser,
+    });
+  };
 }
 
 export const stopChat = () => {
-  // TODO: action creator to stop chat
+  return dispatch => {
+    dispatch({
+      type: 'STOP_CHAT'
+    });
+  }
 }
 
 // Use helper function to parse error message from API

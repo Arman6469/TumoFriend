@@ -3,7 +3,7 @@ var db = require('./db');
 
 function connect(server) {
   const io = socketIO(server);
-  
+
   // TODO: Create namespaces
   usersNamespace(io);
 }
@@ -12,8 +12,13 @@ function connect(server) {
 function usersNamespace(io) {
   const users = io.of('/users');
   users.on('connection', socket => {
+    socket.on('start-chat', (toUser, fromUser) => {
+      if(toUser){
+        users.in(toUser.email).emit('start-chat', fromUser)
+      }
+    });
     // TODO: add listener for starting chat
-    
+
     // TODO: add listener to chat message
 
     // TODO: add listener for editor message WYSIWIG
@@ -25,14 +30,14 @@ function usersNamespace(io) {
       socket.join(user.email);
 
       db.getClient().collection("students").findOneAndUpdate(
-        {email: user.email},
-        {$set: {'loggedIn': true}},
-        {returnOrigignal: false},
-        function(err, results) {
+        { email: user.email },
+        { $set: { 'loggedIn': true } },
+        { returnOrigignal: false },
+        function (err, results) {
           if (err) {
             socket.emit('list error', err);
           } else if (results.value == null) {
-            socket.emit('list error', {error: "Student with email " })
+            socket.emit('list error', { error: "Student with email " })
           } else {
             users.emit('logged in', results.value);
           }
@@ -45,14 +50,14 @@ function usersNamespace(io) {
       socket.leave(user.email);
 
       db.getClient().collection("students").findOneAndUpdate(
-        {email: user.email},
-        {$set: {'loggedIn': false}},
-        {returnOrigignal: false},
-        function(err, results) {
+        { email: user.email },
+        { $set: { 'loggedIn': false } },
+        { returnOrigignal: false },
+        function (err, results) {
           if (err) {
             socket.emit('list error', err);
           } else if (results.value == null) {
-            socket.emit('list error', {error: "Student with email " })
+            socket.emit('list error', { error: "Student with email " })
           } else {
             users.emit('disconnected', results.value);
           }
@@ -65,14 +70,14 @@ function usersNamespace(io) {
       console.log("logged out");
 
       db.getClient().collection("students").findOneAndUpdate(
-        {email: user.email},
-        {$set: {'loggedIn': false}},
-        {returnOrigignal: false},
-        function(err, results) {
+        { email: user.email },
+        { $set: { 'loggedIn': false } },
+        { returnOrigignal: false },
+        function (err, results) {
           if (err) {
             socket.emit('list error', err);
           } else if (results.value == null) {
-            socket.emit('list error', {error: "Student with email " })
+            socket.emit('list error', { error: "Student with email " })
           } else {
             users.emit('logged out', results.value);
           }
@@ -81,19 +86,21 @@ function usersNamespace(io) {
     })
     // TODO: add listener to search query
     socket.on('search', (data, fn) => {
-      const textCriterias = {$text: {$search: data}};
-      const learningTargets = {learningTargets: data};
-      const criteria = {$or: [textCriterias, learningTargets]};
+      let criteria = {}
+      if (data) {
+        const textCriterias = { $text: { $search: data } };
+        const learningTargets = { learningTargets: data };
+        criteria = { $or: [textCriterias, learningTargets] };
+      }
+
       db.getClient().collection('students').find(criteria).sort().toArray((err, result) => {
-        if(!err){
+        if (!err) {
           fn(result);
-        }else{
+        } else {
           fn(err)
         }
       })
-
     })
-
   });
 
 
