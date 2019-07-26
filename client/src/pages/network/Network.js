@@ -1,96 +1,109 @@
-import React, { useState,useEffect } from "react";
-import { Container, Col, Row } from "react-bootstrap";
-import { Widget, addResponseMessage } from "react-chat-widget";
-import ReactQuill from 'react-quill';
-import VideoChat from './VideoChat'
+import React, { Component } from 'react';
 
-import "react-chat-widget/lib/styles.css";
+import { Tabs, Tab, Container, Row, Col } from 'react-bootstrap';
+import './network.css';
+import Socket from '../../socket';
 
-import "./network.css";
-import Socket from "../../socket";
+// Chat
+import { Widget, addResponseMessage } from 'react-chat-widget';
+import 'react-chat-widget/lib/styles.css';
 
-/**
- * Main React Component for the networking page (WYSIWIG, Chat, Video, Canvas)
- */
-export default function NetworkPage({ user,withUser ,receiver}) {
-const [text, setText] = useState('');
+// WYSIWIG
+import ReactQuill from 'react-quill'; // ES6
+import 'react-quill/dist/quill.snow.css'; // ES6
+import debounce from 'debounce';
 
-const handleChange = event => setText(event.target.value)
+// Drawing
+import Drawing from './Drawing';
 
+// VideoChat
+import VideoChat from './VideoChat';
 
-  const handleNewUserMessage = newMessage => {
-    console.log(`New message incoming! ${newMessage}`);
+class NetworkPage extends Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      chatMessages:[],
+      editorText: '',
+    };
+
+    this.handleNewChatMessage = this.handleNewChatMessage.bind(this);
+    this.handleEditorChange = this.handleEditorChange.bind(this);
+  }
+  handleNewChatMessage(message) {
+    this.emitChatMessage(message);
+  }
+  handleEditorChange(source, editor) {
+    console.log('source', source);
+    if (source === 'user') {
+      this.emitEditorMessage(editor.getContents());
+    }
+  }
+  emitChatMessage(message) {
+    Socket.users.emit('chat-message', this.props.withUser, this.props.currentUser, message);
+  }
+  emitEditorMessage(message) {
+    Socket.users.emit('editor-message', this.props.withUser, this.props.currentUser, message);
+  }
+  componentDidMount() {
+    addResponseMessage(`Message ${this.props.withUser ? this.props.withUser.firstName: ''}!`)
     Socket.connect(users => {
-      users.emit("chat",withUser, newMessage);
-    });
-  };
-  // constructor(props) {
-
-  // TODO: set state and handlers for chat message and WYSIWIG
-
-  const componentDidMount = () => {
-    Socket.connect(users => {
-      users.on("chat", message => {
+      users.on('chat-message', (fromUser, message) => {
         addResponseMessage(message);
+        this.setState((prevState) => ({
+          chatMessages: [...prevState.chatMessages, message]
+        }));
+      });
+      users.on('editor-message', (fromUser, message) => {
+        this.setState({
+          editorText: message
+        })
       });
     });
-  };
-
-  useEffect(() => {
-    componentDidMount();
-
-    return() => {
-      componentWillUnmount();
-    }
-   
-  }, []);
-
-  const componentWillUnmount = () => {
-    Socket.connect(users => {
-      users.removeListener('chat')
-    })
   }
-  // }
-  // componentDidMount() {
-
-  // TODO: connect to socket and emit/recieve messages for chat and editor
-
-  // }
-  // componentWillUnmount() {
-
-  // TODO: cleanup listeners for chat/editor sockets
-
-  // }
-
-  return (
-    <Container fluid={true} className="p-0">
-      {
+  componentWillUnmount() {
+    Socket.users.removeListener('chat-message');
+    Socket.users.removeListener('editor-message');
+  }
+  render() {
+    return (
+      <Container fluid={true} className="p-0">
         <Widget
-          title="My new awesome title"
-          subtitle={`${user.firstName}`}
-          handleNewUserMessage={handleNewUserMessage}
+          title='TUMO Chat'
+          subtitle={`Chat with ${this.props.withUser ? this.props.withUser.firstName: ''}!`}
+          handleNewUserMessage={this.handleNewChatMessage}
         />
-      }
-      <Row noGutters={true}>
-        <Col>
-          <span>TODO: add tabs for Canvas and WYSIWIG</span>
-          {
-            // TODO: add tabs for Canvas and WYSIWIG }
-          }
-        </Col>
-        <Col>
-          <div>
-            TODO: add VideoChat element
-            {
-              <VideoChat 
-              user = {user}
-              caller = {receiver ? withUser : user}
-              receiver = {receiver ? user : withUser }
-              />
-            }
-          </div>
-        </Col>
-      </Row>
-    </Container>
-  );
+        <Row noGutters={true}>
+          <Col>
+            <Tabs defaultActiveKey="editor" id="uncontrolled-tab-example">
+              <Tab eventKey="editor" title="Editor">
+                <ReactQuill
+                  id="chat"
+                  value={this.state.editorText}
+                  onChange={(content, delta, source, editor) => { debounce(this.handleEditorChange(source, editor)) } }
+                />
+              </Tab>
+              <Tab eventKey="canvas" title="Canvas">
+                <Drawing withUser={this.props.withUser} currentUser={this.props.currentUser} />
+              </Tab>
+            </Tabs>            
+          </Col>
+          <Col>
+            <div>
+              {this.props.withUser ?
+                <VideoChat
+                  user={this.props.user}
+                  caller={this.props.receiver ? this.props.withUser : this.props.user}
+                  receiver={this.props.receiver ? this.props.user : this.props.withUser}
+                /> : null
+              }
+            </div>
+          </Col>
+        </Row>
+
+      </Container>
+    )
+  }
 }
+
+export default NetworkPage;

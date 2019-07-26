@@ -3,6 +3,7 @@ import LioWebRTC from "liowebrtc";
 import { Button } from "react-bootstrap";
 import endCallIcon from './end-call-icon.png'
 import callIcon from './phone-call.png'
+import './VideoChat.css'
 
 /**
  * VideoChat - WebRTC Workshop: will contain all the logic to start video chat with peer
@@ -128,7 +129,7 @@ class VideoChat extends React.Component {
     return (
       <div>
         {this.generateRemotes()}
-        <div>
+        <div className="vdchat">
           <video
           controls
           height='auto'
